@@ -1,13 +1,14 @@
 import streamlit as st
 import random
+import pyttsx3
 
 # --------------------------
-# THEME SETUP
+# PAGE CONFIG
 # --------------------------
 st.set_page_config(page_title="SproutAI 🌱", page_icon="🌼")
 
 # --------------------------
-# SESSION STATE INITIALIZATION
+# SESSION STATE INIT
 # --------------------------
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -18,49 +19,42 @@ if "quiz_mode" not in st.session_state:
 if "theme" not in st.session_state:
     st.session_state.theme = "Light"
 
+if "voice_enabled" not in st.session_state:
+    st.session_state.voice_enabled = False
+
 # --------------------------
-# THEME SELECTOR
+# SIDEBAR CONTROLS
 # --------------------------
 st.sidebar.title("🌼 SproutAI Settings")
 st.sidebar.markdown("Customize your chatbot experience:")
 
-theme = st.sidebar.selectbox("Choose a Theme", ["Light", "Dark", "Nature"])
-st.session_state.theme = theme
+st.session_state.theme = st.sidebar.selectbox("🎨 Choose Theme", ["Light", "Dark", "Nature"])
+st.session_state.quiz_mode = st.sidebar.checkbox("🧠 STEM Quiz Mode", value=st.session_state.quiz_mode)
+st.session_state.voice_enabled = st.sidebar.checkbox("🔊 Voice Response", value=st.session_state.voice_enabled)
 
-if theme == "Dark":
-    st.markdown("<style>body { background-color: #1e1e1e; color: white; }</style>", unsafe_allow_html=True)
-elif theme == "Nature":
-    st.markdown(
-        """
-        <style>
-            body { background-color: #eafbe0; }
-            .stTextInput, .stTextArea, .stButton, .stSelectbox, .stSlider, .stCheckbox { background-color: #f0fff0; }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
-# --------------------------
-# RESET CHAT BUTTON
-# --------------------------
 if st.sidebar.button("🔄 Reset Chat"):
     st.session_state.messages = []
     st.success("Chat cleared!")
 
 # --------------------------
-# STEM QUIZ MODE TOGGLE
+# THEME CSS
 # --------------------------
-st.session_state.quiz_mode = st.sidebar.toggle("🧠 STEM Quiz Mode")
+if st.session_state.theme == "Dark":
+    st.markdown("<style>body { background-color: #1e1e1e; color: white; }</style>", unsafe_allow_html=True)
+elif st.session_state.theme == "Nature":
+    st.markdown("""
+    <style>
+        body { background-color: #eafbe0; }
+        .stTextInput, .stTextArea, .stButton, .stSelectbox, .stSlider, .stCheckbox { background-color: #f0fff0; }
+    </style>
+    """, unsafe_allow_html=True)
 
 # --------------------------
 # STATIC RESOURCES
 # --------------------------
 bird_audio_url = "https://www.fesliyanstudios.com/play-mp3/387"
-flower_img_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/Spring_flowers_in_a_field.jpg/640px-Spring_flowers_in_a_field.jpg"
+flower_img_url = "https://images.unsplash.com/photo-1504197885-609741792ce7"
 
-# --------------------------
-# SIMULATED RESPONSES
-# --------------------------
 chat_responses = {
     "flower": ["🌸 Tulips, daffodils, and cherry blossoms bloom in spring!", "🌼 Peonies, irises, and hyacinths love spring sunshine."],
     "bee": ["🐝 Bees pollinate over 70% of crops — they're spring heroes!", "Bees can visit 5,000+ flowers a day!"],
@@ -79,7 +73,19 @@ quiz_questions = [
 ]
 
 # --------------------------
-# REPLY GENERATOR
+# TTS FUNCTION
+# --------------------------
+def speak(text):
+    try:
+        engine = pyttsx3.init()
+        engine.setProperty('rate', 150)
+        engine.say(text)
+        engine.runAndWait()
+    except Exception as e:
+        st.warning("Voice failed: " + str(e))
+
+# --------------------------
+# REPLY HANDLER
 # --------------------------
 def get_reply(input_text):
     input_text = input_text.lower()
@@ -89,7 +95,7 @@ def get_reply(input_text):
     return random.choice(chat_responses["default"]), "default"
 
 # --------------------------
-# DISPLAY OLD MESSAGES
+# DISPLAY HISTORY
 # --------------------------
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"], avatar="🌱" if msg["role"] == "assistant" else "🙂"):
@@ -100,16 +106,16 @@ for msg in st.session_state.messages:
             st.audio(bird_audio_url)
 
 # --------------------------
-# CHAT INPUT HANDLER
+# CHAT INPUT
 # --------------------------
 if prompt := st.chat_input("Type your message or ask a question..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar="🙂"):
         st.markdown(prompt)
 
-    # --------------------------
+    # ----------------------
     # QUIZ MODE
-    # --------------------------
+    # ----------------------
     if st.session_state.quiz_mode:
         question = random.choice(quiz_questions)
         answer = question["a"]
@@ -126,3 +132,6 @@ if prompt := st.chat_input("Type your message or ask a question..."):
             st.image(flower_img_url, caption="Spring blooms 🌷", use_column_width=True)
         elif reply_type == "sound":
             st.audio(bird_audio_url)
+
+    if st.session_state.voice_enabled:
+        speak(bot_reply)
