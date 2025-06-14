@@ -1,6 +1,5 @@
 import streamlit as st
 import random
-import pyttsx3
 
 # --------------------------
 # PAGE CONFIG
@@ -73,16 +72,16 @@ quiz_questions = [
 ]
 
 # --------------------------
-# TTS FUNCTION
+# BROWSER TTS FUNCTION
 # --------------------------
-def speak(text):
-    try:
-        engine = pyttsx3.init()
-        engine.setProperty('rate', 150)
-        engine.say(text)
-        engine.runAndWait()
-    except Exception as e:
-        st.warning("Voice failed: " + str(e))
+def speak_js(text):
+    js_code = f"""
+    <script>
+        const msg = new SpeechSynthesisUtterance({text!r});
+        window.speechSynthesis.speak(msg);
+    </script>
+    """
+    st.components.v1.html(js_code)
 
 # --------------------------
 # REPLY HANDLER
@@ -134,4 +133,4 @@ if prompt := st.chat_input("Type your message or ask a question..."):
             st.audio(bird_audio_url)
 
     if st.session_state.voice_enabled:
-        speak(bot_reply)
+        speak_js(bot_reply)
